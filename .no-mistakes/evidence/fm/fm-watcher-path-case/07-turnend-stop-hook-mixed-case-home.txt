@@ -1,0 +1,17 @@
+=== Claude Stop turn-end hook (bin/fm-turnend-guard.sh) on a home reached by a mixed-case spelling ===
+lock fm-home      : /var/folders/gf/nh6xqm0x1nggw7d8gnh9j8gr0000gn/T/fm-live-QhuMgd/primary-home
+lock watcher-path : /var/folders/gf/nh6xqm0x1nggw7d8gnh9j8gr0000gn/T/fm-live-QhuMgd/primary-home/bin/fm-watch.sh
+hook FM_HOME      : /var/folders/gf/nh6xqm0x1nggw7d8gnh9j8gr0000gn/T/fm-live-QhuMgd/Primary-Home
+watcher pid       : 6118 (SN  )
+
+--- BEFORE the change (fixture running the base-commit bin/fm-wake-lib.sh) ---
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  TURN WOULD END BLIND - SUPERVISION IS OFF
+●  1 task(s) in flight, but no live watcher holds this home lock (last beat: 3s ago).
+●  watcher supervision needs Stop-owned automatic recovery; inspect the hook registration and startup status before ending the turn.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+(exit 2)
+
+--- AFTER the change ---
+(exit 0)
+

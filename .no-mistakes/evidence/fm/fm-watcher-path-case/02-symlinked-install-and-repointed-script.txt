@@ -1,0 +1,28 @@
+=== Watcher armed through a symlinked install dir; guard runs from the canonical checkout ===
+lock watcher-path : /var/folders/gf/nh6xqm0x1nggw7d8gnh9j8gr0000gn/T/fm-live-QhuMgd/alt-bin/fm-watch.sh
+guard watcher path: /Users/huntermcdaniel/.no-mistakes/worktrees/579922daef90/01M26FQ7D5RN1H41T541RMBB0J/bin/fm-watch.sh
+same inode?       : 16777234:17090076 16777234:17090076 
+
+--- BEFORE the change (base commit bin/) ---
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no live watcher process holds this home lock (last beat: 3s ago).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  watcher supervision needs Stop-owned automatic recovery; inspect the hook registration and startup status before ending the turn.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+(exit 0)
+
+--- AFTER the change ---
+(exit 0)
+
+=== ADVERSARIAL: repoint that same install spelling at a DIFFERENT watcher script (same spelling, other object) ===
+lock watcher-path : /var/folders/gf/nh6xqm0x1nggw7d8gnh9j8gr0000gn/T/fm-live-QhuMgd/alt-bin/fm-watch.sh -> now /var/folders/gf/nh6xqm0x1nggw7d8gnh9j8gr0000gn/T/fm-live-QhuMgd/impostor-watch.sh
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no live watcher process holds this home lock (last beat: 3s ago).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  watcher supervision needs Stop-owned automatic recovery; inspect the hook registration and startup status before ending the turn.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+(exit 0)

@@ -1,0 +1,18 @@
+=== CONTROL: real watcher, canonical spellings, unmodified lock record ===
+lock: home=/var/folders/gf/nh6xqm0x1nggw7d8gnh9j8gr0000gn/T/fm-live-QhuMgd/home-c script=/Users/huntermcdaniel/.no-mistakes/worktrees/579922daef90/01M26FQ7D5RN1H41T541RMBB0J/bin/fm-watch.sh
+guard output: []  <- empty means healthy
+
+=== ADVERSARIAL 1: a genuinely DIFFERENT home directory (both exist) ===
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no live watcher process holds this home lock (last beat: 3s ago).
+
+=== ADVERSARIAL 2: recorded home no longer resolves to an existing directory ===
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no live watcher process holds this home lock (last beat: 3s ago).
+
+=== ADVERSARIAL 3: recorded watcher script no longer exists ===
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no live watcher process holds this home lock (last beat: 3s ago).

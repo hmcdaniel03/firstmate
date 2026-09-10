@@ -1,0 +1,11 @@
+=== bin/fm-watch-arm.sh --restart against a reused-pid lock recorded under an equivalent home spelling ===
+lock fm-home : /var/folders/gf/nh6xqm0x1nggw7d8gnh9j8gr0000gn/T/fm-live-QhuMgd/arm/home-alias  (symlink -> /var/folders/gf/nh6xqm0x1nggw7d8gnh9j8gr0000gn/T/fm-live-QhuMgd/arm/home)
+arm  FM_HOME : /var/folders/gf/nh6xqm0x1nggw7d8gnh9j8gr0000gn/T/fm-live-QhuMgd/arm/home
+lock pid     : 72091 (a live, unrelated process whose pid the record reuses)
+
+$ FM_HOME=/var/folders/gf/nh6xqm0x1nggw7d8gnh9j8gr0000gn/T/fm-live-QhuMgd/arm/home bin/fm-watch-arm.sh --restart
+check: rearm-resurface
+(exit 0)
+
+unrelated pid 72091 still alive and unsignalled? yes
+recovery published: 1 downtime marker(s)

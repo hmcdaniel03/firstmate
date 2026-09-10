@@ -1,0 +1,20 @@
+=== Live watcher armed with the lowercase home spelling; guard invoked with the on-disk mixed-case spelling ===
+lock fm-home    : /var/folders/gf/nh6xqm0x1nggw7d8gnh9j8gr0000gn/T/fm-live-QhuMgd/firstmate-home
+guard FM_HOME   : /var/folders/gf/nh6xqm0x1nggw7d8gnh9j8gr0000gn/T/fm-live-QhuMgd/Firstmate-Home
+
+--- BEFORE the change (bin/ from base commit 269f8fe) ---
+
+$ FM_HOME=/var/folders/gf/nh6xqm0x1nggw7d8gnh9j8gr0000gn/T/fm-live-QhuMgd/Firstmate-Home bin/fm-guard.sh
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no live watcher process holds this home lock (last beat: 3s ago).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  watcher supervision needs Stop-owned automatic recovery; inspect the hook registration and startup status before ending the turn.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+(exit 0)
+
+--- AFTER the change (bin/ at 18d7f8e) ---
+
+$ FM_HOME=/var/folders/gf/nh6xqm0x1nggw7d8gnh9j8gr0000gn/T/fm-live-QhuMgd/Firstmate-Home bin/fm-guard.sh
+(exit 0)

@@ -1,0 +1,26 @@
+=== Claude Stop turn-end hook: fail-closed adversarials on a live, equivalently-spelled watcher ===
+lock fm-home      : /var/folders/gf/nh6xqm0x1nggw7d8gnh9j8gr0000gn/T/fm-live-QhuMgd/primary-two
+lock watcher-path : /var/folders/gf/nh6xqm0x1nggw7d8gnh9j8gr0000gn/T/fm-live-QhuMgd/primary-two/bin/fm-watch.sh
+hook FM_HOME      : /var/folders/gf/nh6xqm0x1nggw7d8gnh9j8gr0000gn/T/fm-live-QhuMgd/Primary-Two  (mixed-case spelling of the same directory)
+
+1) control - live watcher, equivalent spellings
+   [watcher pid 50077 LIVE]
+   output: []  (hook exit 0)  <- empty + exit 0 means the turn may end
+
+2) the recorded watcher script is removed from the install (partial install)
+   [watcher pid 50077 LIVE] bin/fm-watch.sh present? no
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  TURN WOULD END BLIND - SUPERVISION IS OFF
+●  1 task(s) in flight, but no live watcher holds this home lock (last beat: 3s ago).
+   (hook exit 2)
+
+3) script restored; the lock now records a genuinely different home
+   [watcher pid 50077 LIVE] lock fm-home now: /var/folders/gf/nh6xqm0x1nggw7d8gnh9j8gr0000gn/T/fm-live-QhuMgd/foreign-home
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  TURN WOULD END BLIND - SUPERVISION IS OFF
+●  1 task(s) in flight, but no live watcher holds this home lock (last beat: 3s ago).
+   (hook exit 2)
+
+4) recorded home restored to the equivalent lowercase spelling
+   [watcher pid 50077 LIVE] lock fm-home now: /var/folders/gf/nh6xqm0x1nggw7d8gnh9j8gr0000gn/T/fm-live-QhuMgd/primary-two
+   output: []  (hook exit 0)

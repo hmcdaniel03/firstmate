@@ -1,0 +1,17 @@
+=== Replacement at a BYTE-IDENTICAL recorded spelling (documented contract, see bin/fm-wake-lib.sh fm_paths_equivalent) ===
+lock watcher-path: /var/folders/gf/nh6xqm0x1nggw7d8gnh9j8gr0000gn/T/fm-live-QhuMgd/repl/bin/fm-watch.sh
+inode before     : 16777234:17214653
+watcher pid 13876: SN
+guard now        : []  (empty = healthy)
+
+-- the script at that exact spelling is deleted and recreated (new inode), watcher still live --
+inode after      : 16777234:17214867
+watcher pid 13876: SN
+guard now        : []
+   -> accepted on the type gate alone; the recorded spelling is unchanged, so no filesystem
+      identity comparison is made. This is the contract the header comment and
+      docs/turnend-guard.md state; a spelling REPOINTED at another object is rejected (see 02).
+
+-- same spelling, but nothing exists there at all --
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF

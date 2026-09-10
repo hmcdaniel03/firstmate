@@ -1,0 +1,17 @@
+=== Watcher armed with a RELATIVE home spelling; later guarded commands carry the absolute FM_HOME ===
+lock fm-home : home   (relative, written by the real watcher)
+guard FM_HOME: /var/folders/gf/nh6xqm0x1nggw7d8gnh9j8gr0000gn/T/fm-live-QhuMgd/rel/home
+watcher pid  : 40267 SN  
+
+--- BEFORE the change, run from /var/folders/gf/nh6xqm0x1nggw7d8gnh9j8gr0000gn/T/fm-live-QhuMgd/rel (string compare of "home" vs the absolute path) ---
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no live watcher process holds this home lock (last beat: 3s ago).
+
+--- AFTER the change, run from /var/folders/gf/nh6xqm0x1nggw7d8gnh9j8gr0000gn/T/fm-live-QhuMgd/rel where "home" IS the watcher's real home ---
+output: []  <- empty means healthy
+
+--- AFTER the change, run from /var/folders/gf/nh6xqm0x1nggw7d8gnh9j8gr0000gn/T/fm-live-QhuMgd/rel/decoy where "home" is a DIFFERENT real directory ---
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no live watcher process holds this home lock (last beat: 3s ago).
