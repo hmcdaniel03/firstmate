@@ -1,0 +1,41 @@
+
+========== A  reused-pid lock recorded under an equivalent home spelling ==========
+  lock on disk (recorded through the symlinked home spelling)
+    pid           = 23463
+    fm-home       = /private/var/folders/gf/nh6xqm0x1nggw7d8gnh9j8gr0000gn/T/fm-arm-restart-drive.083qF3/drive-equivalent-home/home-alias
+    watcher-path  = /Users/huntermcdaniel/.no-mistakes/worktrees/579922daef90/01M2GMTN61A2CAA84KMFQYE6YQ/bin/fm-watch.sh
+    pid-identity  = reused-pid-does-not-match
+    arm FM_HOME   = /private/var/folders/gf/nh6xqm0x1nggw7d8gnh9j8gr0000gn/T/fm-arm-restart-drive.083qF3/drive-equivalent-home/home (the real home)
+  observable outcome
+    arm stdout        : published recovery (check: rearm-resurface)
+    recorded lock pid : <cleared>
+    downtime marker   : PUBLISHED -> announced:downtime:23534.1789413257.aGUtZ3
+    lock holder pid 23463: still alive, never signalled
+
+========== B  lock recorded for a genuinely different home ==========
+  lock on disk (recorded for another real home)
+    pid           = 24854
+    fm-home       = /private/var/folders/gf/nh6xqm0x1nggw7d8gnh9j8gr0000gn/T/fm-arm-restart-drive.083qF3/drive-distinct-home/other-home
+    watcher-path  = /Users/huntermcdaniel/.no-mistakes/worktrees/579922daef90/01M2GMTN61A2CAA84KMFQYE6YQ/bin/fm-watch.sh
+    pid-identity  = reused-pid-does-not-match
+    arm FM_HOME   = /private/var/folders/gf/nh6xqm0x1nggw7d8gnh9j8gr0000gn/T/fm-arm-restart-drive.083qF3/drive-distinct-home/home
+  observable outcome
+    arm stdout        : no recovery published
+    recorded lock pid : 24854
+    downtime marker   : not published
+    lock holder pid 24854: still alive, never signalled
+
+========== C  live lock whose recorded watcher script is momentarily absent ==========
+  lock on disk (recorded script not present in this install)
+    pid           = 35321
+    fm-home       = /private/var/folders/gf/nh6xqm0x1nggw7d8gnh9j8gr0000gn/T/fm-arm-restart-drive.083qF3/drive-absent-script/home
+    watcher-path  = /private/var/folders/gf/nh6xqm0x1nggw7d8gnh9j8gr0000gn/T/fm-arm-restart-drive.083qF3/drive-absent-script/bin/fm-watch.sh
+    pid-identity  = Mon Sep 14 15:14:29 2026     sleep 300
+    recorded watcher script exists? no
+  observable outcome
+    arm stdout        : no recovery published
+    recorded lock pid : 35321
+    downtime marker   : not published
+    lock holder pid 35321: still alive, never signalled
+
+========== end of drive ==========

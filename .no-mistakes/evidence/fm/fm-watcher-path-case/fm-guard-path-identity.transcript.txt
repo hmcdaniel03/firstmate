@@ -1,0 +1,79 @@
+
+========== S1/S2  home reached through a symlinked spelling (regression) ==========
+
+-- lock on disk (written by the watcher that holds supervision) --
+  pid           = 96985
+  fm-home       = /var/folders/gf/nh6xqm0x1nggw7d8gnh9j8gr0000gn/T//fm-guard-drive.CxQrPn/s1-home
+  watcher-path  = /Users/huntermcdaniel/.no-mistakes/worktrees/579922daef90/01M2GMTN61A2CAA84KMFQYE6YQ/bin/fm-watch.sh
+  pid-identity  = Mon Sep 14 15:13:34 2026     sleep 900
+  operator now runs guarded commands from the symlinked spelling:
+  FM_HOME = /var/folders/gf/nh6xqm0x1nggw7d8gnh9j8gr0000gn/T//fm-guard-drive.CxQrPn/s1-alias -> /var/folders/gf/nh6xqm0x1nggw7d8gnh9j8gr0000gn/T//fm-guard-drive.CxQrPn/s1-home
+
+-- control: exact recorded spelling, change under test --
+  silent (watcher accepted as healthy)
+
+-- BEFORE (base 18fe6e90ce71fda14d1a7f4782a66efe0b7b07ca): symlinked home spelling --
+  WATCHER DOWN (supervision reported OFF)
+
+-- AFTER (head): same fixture, symlinked home spelling --
+  silent (watcher accepted as healthy)
+
+========== S3  a genuinely different home must still read as down ==========
+  recorded fm-home = /var/folders/gf/nh6xqm0x1nggw7d8gnh9j8gr0000gn/T//fm-guard-drive.CxQrPn/s1-home
+  guard FM_HOME    = /var/folders/gf/nh6xqm0x1nggw7d8gnh9j8gr0000gn/T//fm-guard-drive.CxQrPn/s3-other  (a real, distinct directory)
+  WATCHER DOWN (supervision reported OFF)
+
+========== S4  watcher-script alias repointed at a different script ==========
+  control - alias bin whose fm-watch.sh still links the real script:
+    silent (watcher accepted as healthy)
+  alias repointed at a byte-identical COPY of fm-watch.sh:
+    WATCHER DOWN (supervision reported OFF)
+
+========== S5  recorded home no longer exists (fail closed) ==========
+  recorded fm-home = /var/folders/gf/nh6xqm0x1nggw7d8gnh9j8gr0000gn/T//fm-guard-drive.CxQrPn/s5-home-gone (never created)
+  WATCHER DOWN (supervision reported OFF)
+
+========== S6  relative recorded spellings resolve in the checking cwd ==========
+  recorded fm-home = "home", watcher-path = "watcher.sh" (relative)
+  checked from /var/folders/gf/nh6xqm0x1nggw7d8gnh9j8gr0000gn/T//fm-guard-drive.CxQrPn/s6 (both name the real objects):
+    silent (watcher accepted as healthy)
+  checked from decoy-home-cwd ("home" names another real directory):
+    WATCHER DOWN (supervision reported OFF)
+  checked from decoy-script-cwd ("watcher.sh" names another real script):
+    WATCHER DOWN (supervision reported OFF)
+
+========== S7  mixed-case spelling of the same home ==========
+  filesystem is case-insensitive; /var/folders/gf/nh6xqm0x1nggw7d8gnh9j8gr0000gn/T//fm-guard-drive.CxQrPn/S7-HOME names the same directory
+  silent (watcher accepted as healthy)
+  (case-distinct real objects cannot be staged on this filesystem)
+
+========== S8  documented boundaries the contract does NOT claim ==========
+  (a) home deleted and recreated at the IDENTICAL recorded spelling
+      inode 19610487 -> 19610497 ; docs say an identical spelling is accepted on its
+      type gate alone, so this replacement is NOT detected:
+      silent (watcher accepted as healthy)
+  (b) watcher script reachable but not readable (mode 000)
+      mode = ---------- ; docs claim only lookup/stat, not read permission:
+      silent (watcher accepted as healthy)
+
+========== verbatim operator banner for one rejected case ==========
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no live watcher process holds this home lock (last beat: 2s ago).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  watcher supervision needs Stop-owned automatic recovery; inspect the hook registration and startup status before ending the turn.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+========== end of drive ==========
+
+========== ordinary re-spellings of the recorded home ==========
+  recorded fm-home = /var/folders/gf/nh6xqm0x1nggw7d8gnh9j8gr0000gn/T//fm-guard-spell.bj7Kp6/home
+
+  FM_HOME=/var/folders/gf/nh6xqm0x1nggw7d8gnh9j8gr0000gn/T//fm-guard-spell.bj7Kp6/home (exact) -> silent (healthy)
+  FM_HOME=/var/folders/gf/nh6xqm0x1nggw7d8gnh9j8gr0000gn/T//fm-guard-spell.bj7Kp6/home/ (trailing slash) -> silent (healthy)
+  FM_HOME=.../sibling/../home (dot-dot)                      -> silent (healthy)
+  FM_HOME=.../home/./ (dot component)                        -> silent (healthy)
+  FM_HOME=/var/folders/gf/nh6xqm0x1nggw7d8gnh9j8gr0000gn/T//fm-guard-spell.bj7Kp6/sibling (a real, different dir) -> WATCHER DOWN
+
+========== end ==========
