@@ -289,6 +289,48 @@ Malformed JSON, an empty or malformed rule/default array, an unverified harness,
 While the file remains present, no crewmate or scout spawn may proceed without an explicit resolved harness; malformed configuration must be reported and corrected rather than selected around.
 Secondmate homes inherit this file from the primary, so a secondmate's own crewmates apply the same dispatch profile behavior.
 
+## Worker MCP allowlist (config/crew-mcp.json)
+
+A Firstmate worker runs with its harness's permission prompts disabled and reads untrusted repository content, so every MCP server it can reach is reachable by an indirect prompt injection with no human in the path.
+Workers therefore do not inherit the machine user's MCP configuration.
+A worker launches against a Firstmate-generated `state/<task-id>.mcp.json` whose default content is `{"mcpServers":{}}`, and the only servers in it are the ones that task explicitly opted into.
+This section is the single owner of the schema and the per-harness coverage; [`bin/fm-mcp-allowlist-lib.sh`](../bin/fm-mcp-allowlist-lib.sh) owns validation and generated content, and [`fm-spawn.sh --help`](../bin/fm-spawn.sh) owns the `--mcp-allow` flag mechanics.
+
+`config/crew-mcp.json` is an optional local, gitignored file holding Firstmate's own server definitions and the default allowlist.
+
+```json
+{
+  "servers": {
+    "<name>": { "command": "<executable>", "args": ["<arg>"], "env": { "<KEY>": "<value>" } }
+  },
+  "default": ["<name>"]
+}
+```
+
+`servers` maps a name to a Firstmate-owned server definition, passed through verbatim into the generated file.
+`default` is the allowlist every worker in this home receives when the spawn passes no `--mcp-allow`; an absent `default` and an absent file both mean no server at all.
+A name in `--mcp-allow` or in `default` must have a definition under `servers`, so a name can never mean "reuse whatever the harness's own config calls that" and carry that entry's credential along with it.
+Write each definition here rather than copying an entry out of the harness's user-scope config.
+See [`docs/examples/crew-mcp.json`](examples/crew-mcp.json) for a starting point to copy into local `config/crew-mcp.json`.
+
+A malformed file, a `default` naming an undefined server, an unknown `--mcp-allow` name, or a missing `jq` alongside an existing file refuses the spawn.
+That is deliberate: treating an unreadable allowlist as an empty one would look identical to a working opt-in and would hide the typo that disabled a server the task needs.
+Because the generated file can carry a credential from a definition, it is written owner-only and removed by teardown with the task's other state files.
+Secondmate homes inherit this file from the primary, so a secondmate's own crewmates apply the same definitions and default allowlist.
+Every spawn records `mcp_allow=` (the resolved comma list, empty for no server) and `mcp_isolation=` in the task's metadata.
+
+Per-harness coverage:
+
+| Harness | Worker MCP isolation | Mechanism or gap |
+|---|---|---|
+| claude | Enforced | `--strict-mcp-config --mcp-config <generated file>` restricts the session to that file, so user scope (`~/.claude.json`), project scope (`.mcp.json` in the task worktree), and local scope are all out of reach. |
+| codex, opencode, pi, pi-signed, grok, kimi, cursor, muse | **Not enforced - open gap** | Firstmate has no verified mechanism yet to replace these harnesses' own MCP configuration, so a worker on one of them can reach that harness's configured servers, including the machine user's. Each spawn prints a one-line stderr notice and records `mcp_isolation=unverified` rather than claiming a boundary it does not have. |
+
+`--mcp-allow` is refused on a harness in the second row: a scoped allowlist there would be a claim rather than a boundary.
+Closing a gap means proving the harness's own strict-config switch against the installed binary, adding it to `fm_mcp_isolation_mode`, and moving that row up.
+`tests/fm-mcp-isolation-live-e2e.test.sh` is the opt-in guard that proves flag acceptance per installed harness; run it on a machine with the binaries and record the result in [runtime-backend verification](verification/runtime-backends.md).
+Until a gap closes, treat a credential-bearing or account-session MCP entry in the machine user's harness config as reachable by any worker dispatched on that harness.
+
 ## Toolchain
 
 On session start the first mate detects what its required toolchain is missing or too old and lists each problem with either an exact install command or manual instructions.

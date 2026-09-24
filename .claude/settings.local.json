@@ -1,0 +1,29 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(/Users/huntermcdaniel/.paperclip/instances/default/projects/6b09a11c-982c-4e5e-85a9-1334f3dbea57/674144da-5798-4490-91d3-6142c95d6770/firstmate/scripts/paperclip-issue-update.sh:*)",
+      "Bash(/Users/huntermcdaniel/.paperclip/instances/default/projects/6b09a11c-982c-4e5e-85a9-1334f3dbea57/674144da-5798-4490-91d3-6142c95d6770/firstmate/scripts/paperclip:*)",
+      "Bash(curl:*)",
+      "Bash(env)",
+      "Bash(env:*)"
+    ],
+    "additionalDirectories": [
+      "/Users/huntermcdaniel/.paperclip/instances/default/companies/6b09a11c-982c-4e5e-85a9-1334f3dbea57",
+      "/Users/huntermcdaniel/.paperclip/instances/default/companies/6b09a11c-982c-4e5e-85a9-1334f3dbea57/acp-engine/agents/21dde410-da42-4d56-81bd-902f62311064",
+      "/Users/huntermcdaniel/.paperclip/instances/default/companies/6b09a11c-982c-4e5e-85a9-1334f3dbea57/acp-engine/agents/279a0929-13a2-45a5-a7fe-faff308abfb2",
+      "/Users/huntermcdaniel/.paperclip/instances/default/companies/6b09a11c-982c-4e5e-85a9-1334f3dbea57/acp-engine/agents/7ec2d636-a227-44fd-93e6-ba18b33870f2",
+      "/Users/huntermcdaniel/.paperclip/instances/default/companies/6b09a11c-982c-4e5e-85a9-1334f3dbea57/acp-engine/agents/803d7633-842f-4def-a3dd-ef2098c076e9",
+      "/Users/huntermcdaniel/.paperclip/instances/default/companies/6b09a11c-982c-4e5e-85a9-1334f3dbea57/acp-engine/agents/a3170004-9426-4059-8bfe-b52a1896fd9a",
+      "/Users/huntermcdaniel/.paperclip/instances/default/companies/6b09a11c-982c-4e5e-85a9-1334f3dbea57/acp-engine/agents/ce326bc4-5769-4262-9edc-8b274d2ea41a",
+      "/Users/huntermcdaniel/.paperclip/instances/default/companies/6b09a11c-982c-4e5e-85a9-1334f3dbea57/acp-engine/agents/f9ad3d80-a00c-43d4-a47e-62645602bcad",
+      "/Users/huntermcdaniel/.paperclip/instances/default/workspaces/21dde410-da42-4d56-81bd-902f62311064",
+      "/Users/huntermcdaniel/.paperclip/instances/default/workspaces/279a0929-13a2-45a5-a7fe-faff308abfb2",
+      "/Users/huntermcdaniel/.paperclip/instances/default/workspaces/7ec2d636-a227-44fd-93e6-ba18b33870f2",
+      "/Users/huntermcdaniel/.paperclip/instances/default/workspaces/803d7633-842f-4def-a3dd-ef2098c076e9",
+      "/Users/huntermcdaniel/.paperclip/instances/default/workspaces/a3170004-9426-4059-8bfe-b52a1896fd9a",
+      "/Users/huntermcdaniel/.paperclip/instances/default/workspaces/ce326bc4-5769-4262-9edc-8b274d2ea41a",
+      "/Users/huntermcdaniel/.paperclip/instances/default/workspaces/f9ad3d80-a00c-43d4-a47e-62645602bcad"
+    ],
+    "defaultMode": "default"
+  }
+}

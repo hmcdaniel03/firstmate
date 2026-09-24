@@ -257,6 +257,10 @@
       "audience": "operator-example"
     },
     {
+      "path": "docs/examples/crew-mcp.json",
+      "audience": "operator-example"
+    },
+    {
       "path": "docs/examples/wedge-alarm",
       "audience": "operator-example"
     },
