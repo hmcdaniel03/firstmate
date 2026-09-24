@@ -20,6 +20,8 @@
 # repository (the firstmate checkout) and be synced under that directory's label.
 # Anything else is reported as "skipped: not a clone root" naming the repository
 # that would have been touched.
+# That check compares filesystem identity rather than path spelling, so a case
+# alias or a symlinked spelling of the same clone root still syncs.
 # Pruning never deletes the checked-out branch or a branch that still has a
 # worktree, so it cannot discard unlanded work; set FM_FLEET_PRUNE=0 to disable it.
 # When the fetch fails on an orphaned .git/packed-refs.lock (left by a ref rewrite
@@ -319,10 +321,15 @@ sync_project() {
     echo "$label: skipped: not a git repo"
     return 0
   fi
-  # Both sides are physical paths (git resolves --show-toplevel through symlinks),
-  # so a symlinked clone dir still compares equal to its own root.
-  proj_abs=$(cd "$PROJ" && pwd -P) || proj_abs=""
-  if [ "$proj_top" != "$proj_abs" ]; then
+  # Compare filesystem identity (device plus inode), not path spelling: git reports
+  # --show-toplevel in the canonical on-disk case, while $PROJ keeps whatever
+  # spelling the caller handed in, so on a case-insensitive volume a home reached as
+  # /Users/x/documents/... would string-compare unequal to /Users/x/Documents/... and
+  # skip every clone. Two spellings of one directory - a case alias or a symlink -
+  # are the same object and pass; a plain directory nested inside another repository
+  # is a different object and is still refused below.
+  # Migrate to the shared fm_paths_same_object predicate once it lands in bin/fm-wake-lib.sh.
+  if [ ! "$PROJ" -ef "$proj_top" ]; then
     echo "$label: skipped: not a clone root (git would act on $proj_top)"
     return 0
   fi

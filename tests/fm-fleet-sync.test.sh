@@ -16,7 +16,10 @@
 # through git's upward repository discovery, to the ENCLOSING repository - in a
 # firstmate home, the firstmate checkout itself - so it must be skipped by name
 # with the enclosing repo left untouched, in both the whole-fleet and
-# single-project forms, while a symlinked clone dir still syncs.
+# single-project forms, while a symlinked clone dir still syncs. The guard compares
+# filesystem identity, not path spelling, so a home reached through a case-alias
+# spelling of the same directory still syncs too (that case skips itself, with a
+# printed reason, on a case-sensitive filesystem where no such alias exists).
 #
 # It also pins the orphaned .git/packed-refs.lock recovery in the fetch step
 # (fetch_with_packed_refs_lock_guard, backed by bin/fm-lock-lib.sh's shared
@@ -88,6 +91,16 @@ advance_origin() {
 }
 
 head_sha() { git -C "$1" rev-parse HEAD; }
+
+# fs_is_case_insensitive: true when this filesystem resolves two spellings that
+# differ only in case to the same directory (macOS APFS/HFS+ defaults, and Windows).
+# Probed with its own marker rather than with the -ef test the guard itself uses,
+# so the probe cannot agree with a broken guard.
+fs_is_case_insensitive() {
+  local probe="$TMP_ROOT/case-probe"
+  mkdir -p "$probe/lower"
+  [ -d "$probe/LOWER" ]
+}
 
 # run_sync <home> [args...]: run fleet-sync against an isolated home, stdout only.
 run_sync() {
@@ -694,6 +707,33 @@ test_symlinked_clone_still_syncs() {
   pass "the clone-root guard accepts a symlinked clone directory"
 }
 
+test_case_aliased_home_spelling_still_syncs() {
+  local home clone aliased out
+  if ! fs_is_case_insensitive; then
+    pass "clone-root case alias: skipped, this filesystem is case-sensitive so no case-alias spelling of a directory exists"
+    return
+  fi
+  home=$(new_home)
+  clone=$(build_pair "$home" tau)
+  advance_origin "$home" tau C1
+  # Reach the very same home through a spelling that differs only in case - what a
+  # macOS home under Documents/ produces when it is addressed as documents/. git
+  # reports --show-toplevel in the canonical on-disk case, so comparing the two
+  # spellings as strings called EVERY clone "not a clone root" while the command
+  # still exited 0, and the same silent skip reached teardown's post-merge refresh.
+  aliased="$TMP_ROOT/$(basename "$home" | tr '[:lower:]' '[:upper:]')"
+  [ -d "$aliased/projects" ] || fail "case-alias fixture: $aliased does not reach the same home as $home"
+  [ -d "$clone" ] || fail "case-alias fixture: clone $clone missing"
+
+  out=$(run_sync "$aliased")
+
+  assert_contains "$out" "tau: synced" \
+    "a clone reached through a case-alias spelling of its home must still fast-forward"
+  assert_not_contains "$out" "not a clone root" \
+    "a case-alias spelling of the same directory must not trip the clone-root guard"
+  pass "the clone-root guard accepts a case-alias spelling of the home path"
+}
+
 test_non_signature_fetch_failure_is_not_retried() {
   local home fakebin clone out err
   home=$(new_home)
@@ -741,3 +781,4 @@ test_non_signature_fetch_failure_is_not_retried
 test_non_clone_dir_never_syncs_the_enclosing_repo
 test_non_clone_dir_named_directly_never_syncs_the_enclosing_repo
 test_symlinked_clone_still_syncs
+test_case_aliased_home_spelling_still_syncs
