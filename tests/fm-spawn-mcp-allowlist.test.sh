@@ -373,7 +373,7 @@ JSON
     --mcp-allow docs-fetch)
   status=$?
   expect_code 1 "$status" "--mcp-allow must refuse where firstmate cannot enforce it"
-  assert_contains "$out" "cannot be honored on harness 'codex'" \
+  assert_contains "$out" "cannot be honored for this launch (harness 'codex')" \
     "refusal should say the harness has no verified isolation mechanism"
   pass "--mcp-allow refuses on a harness where it would be a claim rather than a boundary"
 }
@@ -444,6 +444,31 @@ test_raw_launch_command_cannot_claim_an_unearned_boundary() {
   pass "a raw launch command cannot claim a boundary it does not carry"
 }
 
+test_foreign_strict_flags_do_not_make_a_grant_deliverable() {
+  local rec id out status
+  id=mcp-foreign-strict-b6
+  rec=$(make_spawn_case mcp-foreign-strict claude "$id")
+  read_case_record "$rec"
+  write_definitions "$HOME_DIR" <<'JSON'
+{ "servers": { "docs-fetch": { "command": "node" } }, "default": ["docs-fetch"] }
+JSON
+
+  # A raw command can carry its OWN --mcp-config that firstmate does not own and
+  # cannot fill, so the harness's strict flags alone must not be read as firstmate
+  # having delivered the grant.
+  out=$(run_ship_spawn "$HOME_DIR" "$WT_DIR" "$FAKEBIN_DIR" "$LAUNCH_LOG" "$id" "$PROJ_DIR" \
+    'claude --dangerously-skip-permissions --strict-mcp-config --mcp-config /tmp/theirs.json')
+  status=$?
+  expect_code 0 "$status" "raw launch command with its own MCP config should still spawn"
+  assert_meta_line "$HOME_DIR/state/$id.meta" 'mcp_isolation=unverified' \
+    "a launch firstmate did not scope must not record an enforced boundary"
+  assert_meta_line "$HOME_DIR/state/$id.meta" 'mcp_allow=' \
+    "mcp_allow must stay empty when firstmate delivered no allowlist, even with a configured default"
+  assert_absent "$HOME_DIR/state/$id.mcp.json" \
+    "firstmate should generate no file for a launch it cannot point at one"
+  pass "another party's strict flags do not count as a firstmate-delivered grant"
+}
+
 test_claude_worker_launch_is_strictly_scoped_to_an_empty_allowlist
 test_user_scope_server_name_is_not_grantable_without_a_firstmate_definition
 test_unknown_name_refuses_even_when_definitions_exist
@@ -458,3 +483,4 @@ test_empty_flag_value_is_a_refusal_not_a_silent_empty_grant
 test_scout_worker_is_scoped_the_same_way
 test_secondmate_agent_is_scoped_the_same_way
 test_raw_launch_command_cannot_claim_an_unearned_boundary
+test_foreign_strict_flags_do_not_make_a_grant_deliverable

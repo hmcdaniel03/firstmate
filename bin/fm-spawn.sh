@@ -1275,29 +1275,36 @@ fi
 # definitions schema, name resolution, and generated file content;
 # docs/configuration.md "Worker MCP allowlist" is the operator-facing owner.
 MCP_ISOLATION=$(fm_mcp_isolation_mode "$HARNESS")
-# The recorded claim has to match what will actually be launched, not just the
-# harness name: the raw-launch escape hatch can name a strict-capable harness
-# while omitting the flags entirely, and a silently-false strict record is worse
-# than an honest gap.
-if [ "$MCP_ISOLATION" = strict ]; then
-  case "$LAUNCH" in
-    *__MCPCONFIG__*|*--strict-mcp-config*) ;;
-    *) MCP_ISOLATION=unverified ;;
-  esac
-fi
-MCP_ALLOW_REQUESTED=$MCP_ALLOW_ARG
-if [ "$MCP_ALLOW_SET" -eq 0 ] && [ "$RELAUNCH" -eq 1 ]; then
-  MCP_ALLOW_REQUESTED=${RELAUNCH_PRIOR_MCP_ALLOW:-none}
-fi
-if [ "$MCP_ALLOW_SET" -eq 1 ] && [ "$MCP_ISOLATION" != strict ]; then
-  echo "error: --mcp-allow cannot be honored on harness '$HARNESS'; firstmate has no verified mechanism to replace that harness's own MCP configuration, so a scoped allowlist there would be a claim rather than a boundary (docs/configuration.md \"Worker MCP allowlist\" owns the per-harness coverage). Select a harness with verified isolation or drop the flag." >&2
+# Whether firstmate can deliver a grant at all is decided by the composed launch,
+# not by the harness name: the raw-launch escape hatch can name a strict-capable
+# harness while omitting the flags, or supply its own --mcp-config that firstmate
+# does not own. Either way the placeholder is the one thing firstmate can fill, so
+# its absence means no grant was delivered and the record must say so. A
+# silently-false strict claim is worse than an honest gap.
+MCP_DELIVERABLE=0
+case "$LAUNCH" in
+  *__MCPCONFIG__*) [ "$MCP_ISOLATION" = strict ] && MCP_DELIVERABLE=1 ;;
+esac
+[ "$MCP_DELIVERABLE" -eq 1 ] || MCP_ISOLATION=unverified
+if [ "$MCP_ALLOW_SET" -eq 1 ] && [ "$MCP_DELIVERABLE" -eq 0 ]; then
+  echo "error: --mcp-allow cannot be honored for this launch (harness '$HARNESS'); firstmate has no verified mechanism to replace that harness's own MCP configuration, or this launch command supplies its own, so a scoped allowlist here would be a claim rather than a boundary (docs/configuration.md \"Worker MCP allowlist\" owns the per-harness coverage). Select a harness with verified isolation or drop the flag." >&2
   exit 1
 fi
-MCP_ALLOW_NAMES=$(fm_mcp_allowlist_resolve "$CONFIG" "$MCP_ALLOW_REQUESTED") || exit 1
-MCP_ALLOW_RECORD=$(printf '%s' "$MCP_ALLOW_NAMES" | tr '\n' ',' | sed 's/,$//')
-if [ "$MCP_ISOLATION" != strict ]; then
-  # Disclose rather than claim. A worker on this harness still reads that
-  # harness's own MCP configuration, including the machine user's servers.
+MCP_ALLOW_NAMES=
+MCP_ALLOW_RECORD=
+if [ "$MCP_DELIVERABLE" -eq 1 ]; then
+  MCP_ALLOW_REQUESTED=$MCP_ALLOW_ARG
+  if [ "$MCP_ALLOW_SET" -eq 0 ] && [ "$RELAUNCH" -eq 1 ]; then
+    # The recorded grant is this task's answer, so a replacement worker reuses it
+    # rather than re-reading a config default that may have changed since.
+    MCP_ALLOW_REQUESTED=${RELAUNCH_PRIOR_MCP_ALLOW:-none}
+  fi
+  MCP_ALLOW_NAMES=$(fm_mcp_allowlist_resolve "$CONFIG" "$MCP_ALLOW_REQUESTED") || exit 1
+  MCP_ALLOW_RECORD=$(printf '%s' "$MCP_ALLOW_NAMES" | tr '\n' ',' | sed 's/,$//')
+else
+  # Disclose rather than claim. A worker launched this way still reads its
+  # harness's own MCP configuration, including the machine user's servers, and
+  # mcp_allow= stays empty because firstmate delivered no allowlist.
   echo "notice: worker MCP isolation is NOT enforced for harness '$HARNESS' - this worker can reach that harness's own configured MCP servers, including user-scope ones. docs/configuration.md \"Worker MCP allowlist\" owns the per-harness coverage and the open gaps." >&2
 fi
 
