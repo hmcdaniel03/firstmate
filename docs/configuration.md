@@ -328,7 +328,9 @@ Per-harness coverage:
 
 `--mcp-allow` is refused on a harness in the second row: a scoped allowlist there would be a claim rather than a boundary.
 Closing a gap means proving the harness's own strict-config switch against the installed binary, adding it to `fm_mcp_isolation_mode`, and moving that row up.
-`tests/fm-mcp-isolation-live-e2e.test.sh` is the opt-in guard that proves flag acceptance per installed harness; run it on a machine with the binaries and record the result in [runtime-backend verification](verification/runtime-backends.md).
+The claude row rests on the documented behavior of those two flags rather than on a recorded fleet run; `tests/fm-mcp-isolation-live-e2e.test.sh` is the opt-in guard that proves flag acceptance and surface restriction per installed harness.
+Run it with `FM_MCP_ISOLATION_GUARD=1` on a machine that has the binaries, after any harness upgrade, and record the dated result in [runtime-backend verification](verification/runtime-backends.md).
+The same guard fails when a harness in the second row has quietly gained a strict-config switch, so a stale gap row is caught rather than assumed.
 Until a gap closes, treat a credential-bearing or account-session MCP entry in the machine user's harness config as reachable by any worker dispatched on that harness.
 
 ## Toolchain

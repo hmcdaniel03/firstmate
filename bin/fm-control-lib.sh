@@ -225,6 +225,11 @@ fm_control_harness_wiring_paths() {  # <harness> <worktree> <state-dir> <id>
       ;;
     cursor) printf '%s\n' "$state/$id.cursor-session" ;;
   esac
+  # The generated worker MCP allowlist (bin/fm-mcp-allowlist-lib.sh) is
+  # firstmate-owned per-task state for whichever harness consumes it. A relaunch
+  # onto the same harness regenerates it later in the same spawn; a relaunch away
+  # from one must not leave a retired incarnation's capability grant on disk.
+  printf '%s\n' "$state/$id.mcp.json"
 }
 
 # The firstmate-owned global turn-end registry entry a harness mints per task.
