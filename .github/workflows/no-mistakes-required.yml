@@ -22,7 +22,10 @@ jobs:
   check:
     name: PR must be raised via no-mistakes
     runs-on: ubuntu-latest
+    # The no-mistakes gate is enforced on the upstream repository only, and is
+    # skipped on forks that cannot run the pipeline.
     if: >-
+      github.repository == 'kunchenguid/firstmate' &&
       github.event.pull_request.user.login != 'github-actions[bot]' &&
       github.event.pull_request.user.login != 'dependabot[bot]'
     steps:
