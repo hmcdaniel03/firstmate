@@ -137,7 +137,7 @@ The supported launch-profile flags below are verified locally; each row records 
 ### Worker MCP surface
 
 A worker's reachable MCP servers are a capability axis, not a convenience axis, because a worker runs with permission prompts disabled over untrusted repository content.
-Only claude has a verified mechanism (`--strict-mcp-config --mcp-config <file>`) for firstmate to replace that harness's own MCP configuration; every other verified adapter is an open gap where a worker still reaches the machine user's configured servers.
+Only claude has a verified mechanism (`--mcp-config <file> --strict-mcp-config`, in that order because `--mcp-config` is variadic and would otherwise swallow the launch prompt) for firstmate to replace that harness's own MCP configuration; every other verified adapter is an open gap where a worker still reaches the machine user's configured servers.
 `docs/configuration.md` "Worker MCP allowlist" is the single owner of that coverage table, the `config/crew-mcp.json` schema, and what closing a gap requires.
 When selecting an adapter for a task that must not reach a credential-bearing or account-session MCP entry, prefer one whose isolation is enforced, and never present an unenforced adapter as scoped.
 

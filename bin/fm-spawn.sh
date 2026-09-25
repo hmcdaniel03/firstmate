@@ -176,7 +176,10 @@
 #     __OPINPUT__   absolute path to the canonical operational-input encoder
 #     __WORKTREE__  absolute path to the task worktree
 #     __MCPCONFIG__ quoted absolute path to state/<task-id>.mcp.json, this task's
-#                  firstmate-generated MCP allowlist (see --mcp-allow above)
+#                  firstmate-generated MCP allowlist (see --mcp-allow above). The
+#                  claude flag that consumes it is variadic, so a template must
+#                  place an option after it rather than relying on __MODELFLAG__
+#                  or __EFFORTFLAG__, which are empty on a default spawn.
 #     __CURSORBIN__ resolved, cursor-verified executable for a cursor launch
 # Verified per-harness turn-end hooks are installed automatically where enabled; some live outside the worktree.
 # Kimi uses one surgically installed Firstmate region in $HOME/.kimi-code/config.toml,
@@ -1145,7 +1148,7 @@ launch_template() {
     # does NOT suppress the interactive ghost text (verified empirically), so the env
     # var is the correct control. The dim-aware composer reader in fm-tmux-lib.sh is
     # the defense-in-depth backstop for any pane this flag cannot reach.
-    # --strict-mcp-config --mcp-config is the worker capability boundary, not an
+    # --mcp-config --strict-mcp-config is the worker capability boundary, not an
     # optional extra: a worker runs with --dangerously-skip-permissions over
     # untrusted repository content, so every MCP server it can reach is reachable
     # by an indirect prompt injection with no human in the path. Strict mode
@@ -1153,7 +1156,15 @@ launch_template() {
     # servers in ~/.claude.json and any project-scope .mcp.json in the worktree
     # are both out of reach. bin/fm-mcp-allowlist-lib.sh owns that file's content
     # (default {"mcpServers":{}}); dropping these flags re-opens the whole surface.
-    claude) printf '%s' 'CLAUDE_CODE_ENABLE_PROMPT_SUGGESTION=false claude --dangerously-skip-permissions --strict-mcp-config --mcp-config __MCPCONFIG__ __MODELFLAG____EFFORTFLAG__"$(__OPINPUT__ encode launch-brief < __BRIEF__)"' ;;
+    # ORDER IS LOAD-BEARING: --mcp-config is variadic (`--mcp-config <configs...>`,
+    # verified on claude 2.1.282), so it keeps eating following arguments until it
+    # meets the next option. __MODELFLAG__ and __EFFORTFLAG__ are both empty on a
+    # default crewmate or scout spawn, so with --mcp-config last the encoded brief
+    # lands in the config list and the launch dies with "MCP config file not
+    # found: <the brief>". --strict-mcp-config after the path terminates the
+    # variadic whatever the model and effort flags expand to; never move it back
+    # in front of --mcp-config.
+    claude) printf '%s' 'CLAUDE_CODE_ENABLE_PROMPT_SUGGESTION=false claude --dangerously-skip-permissions --mcp-config __MCPCONFIG__ --strict-mcp-config __MODELFLAG____EFFORTFLAG__"$(__OPINPUT__ encode launch-brief < __BRIEF__)"' ;;
     codex)
       if [ "$kind" = secondmate ]; then
         printf '%s' 'codex __MODELFLAG____EFFORTFLAG__--dangerously-bypass-approvals-and-sandbox "$(__OPINPUT__ encode launch-brief < __BRIEF__)"'

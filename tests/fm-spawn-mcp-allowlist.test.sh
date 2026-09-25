@@ -126,12 +126,16 @@ run_ship_spawn() {
 # The launch must point at the generated file, and that file is the whole MCP
 # surface only because strict mode is on; assert both together so neither half
 # can be dropped on its own.
+#
+# claude's --mcp-config is variadic, so the token that follows the generated path
+# has to be an option or the flag swallows it. Asserting the exact
+# "--mcp-config '<path>' --strict-mcp-config" adjacency pins both halves AND the
+# order in one check, on every case in this file rather than only the dedicated
+# no-model one below.
 assert_strict_launch() {
   local launch=$1 home=$2 id=$3
-  assert_contains "$launch" "--strict-mcp-config" \
-    "claude worker launch is missing --strict-mcp-config, so it would load every user-scope and project-scope MCP server"
-  assert_contains "$launch" "--mcp-config '$home/state/$id.mcp.json'" \
-    "claude worker launch is missing --mcp-config pointed at the firstmate-generated allowlist"
+  assert_contains "$launch" "--mcp-config '$home/state/$id.mcp.json' --strict-mcp-config" \
+    "claude worker launch must pass --mcp-config pointed at the firstmate-generated allowlist and terminate that variadic flag with --strict-mcp-config, or it would load every user-scope and project-scope MCP server (or swallow the brief as a config path)"
 }
 
 # The recorded grant has to be an EXACT line: a substring match would let
@@ -185,6 +189,43 @@ test_claude_worker_launch_is_strictly_scoped_to_an_empty_allowlist() {
   assert_meta_line "$HOME_DIR/state/$id.meta" 'mcp_isolation=strict' \
     "meta should record that firstmate enforced the claude worker MCP boundary"
   pass "a claude worker launches strictly scoped to an empty firstmate-owned allowlist"
+}
+
+test_claude_launch_without_model_or_effort_terminates_the_variadic_config_flag() {
+  local rec id out status launch marker after next_token
+  id=mcp-variadic-a7
+  rec=$(make_spawn_case mcp-variadic claude "$id")
+  read_case_record "$rec"
+
+  # No --model and no --effort is the DEFAULT crewmate and scout shape, so both
+  # placeholders expand to nothing and only the template's own ordering keeps
+  # claude's variadic --mcp-config from eating the encoded brief as a second
+  # config path. Verified against claude 2.1.282: with --mcp-config last the
+  # binary refuses to start with "MCP config file not found: <the brief>", so
+  # every default worker on this harness would fail to launch.
+  out=$(run_ship_spawn "$HOME_DIR" "$WT_DIR" "$FAKEBIN_DIR" "$LAUNCH_LOG" "$id" "$PROJ_DIR")
+  status=$?
+  expect_code 0 "$status" "default claude spawn with no model or effort should succeed"
+  launch=$(cat "$LAUNCH_LOG")
+
+  # This case only guards anything while the spawn really passes neither flag;
+  # either one would terminate the variadic on its own and hide the regression.
+  assert_not_contains "$launch" "--model " \
+    "this regression case must spawn with no --model, or a model flag would mask the variadic swallow"
+  assert_not_contains "$launch" "--effort " \
+    "this regression case must spawn with no --effort, or an effort flag would mask the variadic swallow"
+
+  assert_strict_launch "$launch" "$HOME_DIR" "$id"
+
+  # Whatever sits immediately after the generated path has to be an option.
+  marker="--mcp-config '$HOME_DIR/state/$id.mcp.json' "
+  after=${launch#*"$marker"}
+  next_token=${after%% *}
+  case "$next_token" in
+    --*) ;;
+    *) fail "the token after --mcp-config is '$next_token' rather than an option, so claude's variadic --mcp-config consumes it as a second config file and the worker never starts" ;;
+  esac
+  pass "a claude launch with no model or effort still terminates the variadic --mcp-config with an option"
 }
 
 test_user_scope_server_name_is_not_grantable_without_a_firstmate_definition() {
@@ -470,6 +511,7 @@ JSON
 }
 
 test_claude_worker_launch_is_strictly_scoped_to_an_empty_allowlist
+test_claude_launch_without_model_or_effort_terminates_the_variadic_config_flag
 test_user_scope_server_name_is_not_grantable_without_a_firstmate_definition
 test_unknown_name_refuses_even_when_definitions_exist
 test_configured_default_allowlist_is_the_only_granted_surface
