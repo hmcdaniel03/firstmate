@@ -167,7 +167,7 @@ test_no_profile_keeps_claude_profile_defaults() {
   launch=$(cat "$LAUNCH_LOG")
   # The worker MCP allowlist flags are part of the canonical claude launch kind;
   # tests/fm-spawn-mcp-allowlist.test.sh owns that boundary's own coverage.
-  expected="env -u CURSOR_AGENT -u CURSOR_INVOKED_AS CLAUDE_CODE_ENABLE_PROMPT_SUGGESTION=false claude --dangerously-skip-permissions --strict-mcp-config --mcp-config '$HOME_DIR/state/$id.mcp.json' \"\$('${ROOT}/bin/fm-operational-input.sh' encode launch-brief < '$HOME_DIR/data/$id/brief.md')\""
+  expected="env -u CURSOR_AGENT -u CURSOR_INVOKED_AS CLAUDE_CODE_ENABLE_PROMPT_SUGGESTION=false claude --dangerously-skip-permissions --mcp-config '$HOME_DIR/state/$id.mcp.json' --strict-mcp-config \"\$('${ROOT}/bin/fm-operational-input.sh' encode launch-brief < '$HOME_DIR/data/$id/brief.md')\""
   [ "$launch" = "$expected" ] || fail "no-profile claude launch did not use the canonical launch kind"$'\n'"expected: $expected"$'\n'"actual:   $launch"
   pass "no --model/--effort records defaults and types the claude launch instructions"
 }
