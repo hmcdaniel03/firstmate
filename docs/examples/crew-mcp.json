@@ -1,0 +1,16 @@
+{
+  "servers": {
+    "docs-fetch": {
+      "command": "npx",
+      "args": ["-y", "@example/docs-mcp"]
+    },
+    "reporting-db-readonly": {
+      "command": "/opt/firstmate-mcp/reporting-db",
+      "args": ["--readonly"],
+      "env": {
+        "REPORTING_DB_URL": "postgres://reader@localhost/reporting"
+      }
+    }
+  },
+  "default": []
+}

@@ -134,6 +134,13 @@ The supported launch-profile flags below are verified locally; each row records 
 | cursor | `--model <model>` | none | Verified 2026-08-11 on Cursor Agent CLI 2026.08.11-e8db854. No effort flag exists, so firstmate records the requested effort in task metadata and omits it from the launch. Validate ids against `cursor-agent --list-models` rather than assuming a low/medium/high family: the live catalog carries only `-high` Grok ids. |
 | muse | `--model <model>` | `--reasoning-effort <low\|medium\|high\|xhigh>`, and `ultra` only for an explicit `max` | Verified 2026-08-05 on Muse Code 0.1.0-R708.1. The flag accepts `none\|minimal\|low\|medium\|high\|xhigh\|ultra` and defaults to `high`. `ultra` is muse's max-class level, so it is reachable only through an explicit captain `max`, never from the generic fallback; `none` and `minimal` sit below the shared vocabulary and stay unreachable. |
 
+### Worker MCP surface
+
+A worker's reachable MCP servers are a capability axis, not a convenience axis, because a worker runs with permission prompts disabled over untrusted repository content.
+Only claude has a verified mechanism (`--strict-mcp-config --mcp-config <file>`) for firstmate to replace that harness's own MCP configuration; every other verified adapter is an open gap where a worker still reaches the machine user's configured servers.
+`docs/configuration.md` "Worker MCP allowlist" is the single owner of that coverage table, the `config/crew-mcp.json` schema, and what closing a gap requires.
+When selecting an adapter for a task that must not reach a credential-bearing or account-session MCP entry, prefer one whose isolation is enforced, and never present an unenforced adapter as scoped.
+
 The concrete `harness` field owns adapter identity independently of the model provider: `harness=pi` with `model=xai/grok-*` is Pi using xAI, not `harness=grok`, and does not require Grok CLI login; `harness=grok` remains the standalone Grok Build CLI adapter.
 Likewise, `harness=cursor` with `model=cursor-grok-4.5-*` is Cursor Agent CLI routing a Grok model, not the xAI Grok Build `grok` harness.
 No script resolves that split for you: establish which credential store a tuple reads from the discovery surfaces below plus `quota-axi auth --json`'s per-provider sources, and show that reasoning rather than inferring it from a harness, model, or source name.

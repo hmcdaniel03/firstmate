@@ -38,6 +38,21 @@
 #   axes chosen by firstmate at intake. They are only threaded into harnesses whose
 #   installed CLIs were verified to support that axis; unsupported axes are omitted
 #   from that harness's launch rather than guessed.
+#   --mcp-allow <name>[,<name>] is this task's worker MCP capability grant. A
+#   worker never inherits the machine user's MCP servers: it launches against a
+#   firstmate-generated state/<task-id>.mcp.json whose default content is
+#   {"mcpServers":{}}. Each name must have a firstmate-owned definition under
+#   "servers" in config/crew-mcp.json, so a name can never mean "copy whatever
+#   the harness's own config calls that" and carry that entry's secret along. An
+#   unknown name, malformed config, or missing jq alongside an existing config
+#   refuses the spawn. Pass `none` for an explicitly empty allowlist; with no
+#   flag, a fresh spawn uses that file's "default" array (empty when the file is
+#   absent) and a --relaunch reuses the task's recorded mcp_allow=. The flag is
+#   refused on a harness whose MCP surface firstmate cannot verifiably replace,
+#   and such a spawn prints a one-line stderr notice that isolation is not
+#   enforced there. Every spawn records mcp_allow= and mcp_isolation= in meta.
+#   bin/fm-mcp-allowlist-lib.sh owns the schema and generated content, and
+#   docs/configuration.md "Worker MCP allowlist" owns per-harness coverage.
 #   --backend <name> is the explicit runtime session-provider backend for this
 #   exact task only (docs/configuration.md "Runtime backend" owns when that flag
 #   is authorized). Without it, the script resolves FM_BACKEND, then
@@ -160,6 +175,8 @@
 #     __PIWATCH__   absolute path to .pi/extensions/fm-primary-pi-watch.ts in a pi secondmate home
 #     __OPINPUT__   absolute path to the canonical operational-input encoder
 #     __WORKTREE__  absolute path to the task worktree
+#     __MCPCONFIG__ quoted absolute path to state/<task-id>.mcp.json, this task's
+#                  firstmate-generated MCP allowlist (see --mcp-allow above)
 #     __CURSORBIN__ resolved, cursor-verified executable for a cursor launch
 # Verified per-harness turn-end hooks are installed automatically where enabled; some live outside the worktree.
 # Kimi uses one surgically installed Firstmate region in $HOME/.kimi-code/config.toml,
@@ -260,6 +277,8 @@ SUB_HOME_MARKER=".fm-secondmate-home"
 . "$SCRIPT_DIR/fm-trace-context-lib.sh"
 # shellcheck source=bin/fm-remote-readiness-lib.sh
 . "$SCRIPT_DIR/fm-remote-readiness-lib.sh"
+# shellcheck source=bin/fm-mcp-allowlist-lib.sh
+. "$SCRIPT_DIR/fm-mcp-allowlist-lib.sh"
 # Fail closed before any fleet mutation: a no-mistakes gate agent must never spawn
 # a direct report (see bin/fm-gate-refuse-lib.sh).
 fm_refuse_if_gate_agent
@@ -275,6 +294,7 @@ BACKEND_ARG=
 MODE=
 YOLO=
 TRACEPARENT_ARG=
+MCP_ALLOW_ARG=
 HARNESS_SET=0
 MODEL_SET=0
 EFFORT_SET=0
@@ -282,6 +302,7 @@ BACKEND_SET=0
 MODE_SET=0
 YOLO_SET=0
 TRACEPARENT_SET=0
+MCP_ALLOW_SET=0
 RELAUNCH=0
 POS=()
 want_value=
@@ -298,6 +319,7 @@ for a in "$@"; do
       mode) MODE=$a; MODE_SET=1 ;;
       yolo) YOLO=$a; YOLO_SET=1 ;;
       traceparent) TRACEPARENT_ARG=$a; TRACEPARENT_SET=1 ;;
+      mcp-allow) MCP_ALLOW_ARG=$a; MCP_ALLOW_SET=1 ;;
       *) echo "error: internal parser state for --$want_value" >&2; exit 1 ;;
     esac
     want_value=
@@ -321,6 +343,8 @@ for a in "$@"; do
     --yolo=*) YOLO=${a#--yolo=}; YOLO_SET=1 ;;
     --traceparent) want_value=traceparent ;;
     --traceparent=*) TRACEPARENT_ARG=${a#--traceparent=}; TRACEPARENT_SET=1 ;;
+    --mcp-allow) want_value=mcp-allow ;;
+    --mcp-allow=*) MCP_ALLOW_ARG=${a#--mcp-allow=}; MCP_ALLOW_SET=1 ;;
     *) POS+=("$a") ;;
   esac
 done
@@ -332,6 +356,9 @@ done
 [ "$MODE_SET" -eq 0 ] || [ -n "$MODE" ] || { echo "error: --mode requires a non-empty value" >&2; exit 1; }
 [ "$YOLO_SET" -eq 0 ] || [ -n "$YOLO" ] || { echo "error: --yolo requires a non-empty value" >&2; exit 1; }
 [ "$TRACEPARENT_SET" -eq 0 ] || [ -n "$TRACEPARENT_ARG" ] || { echo "error: --traceparent requires a non-empty value" >&2; exit 1; }
+# --mcp-allow is the only way a server reaches a worker, so an empty value is a
+# typo rather than a way to ask for the empty default; `none` says that out loud.
+[ "$MCP_ALLOW_SET" -eq 0 ] || [ -n "$MCP_ALLOW_ARG" ] || { echo "error: --mcp-allow requires a non-empty value; pass 'none' for an explicitly empty allowlist" >&2; exit 1; }
 # A parent-delivered carrier replaces this home's own resolution, so it is
 # refused unless it is a secondmate spawn carrying a strictly valid W3C value.
 # Nothing else may reach the pane's TRACEPARENT export.
@@ -863,6 +890,7 @@ if [ "${#POS[@]}" -gt 0 ] && [ "${POS[0]}" != "$idpart" ] && case "$idpart" in *
   [ -z "$MODEL" ] || shared_args+=(--model "$MODEL")
   [ -z "$EFFORT" ] || shared_args+=(--effort "$EFFORT")
   [ -z "$BACKEND_ARG" ] || shared_args+=(--backend "$BACKEND_ARG")
+  [ "$MCP_ALLOW_SET" -eq 0 ] || shared_args+=(--mcp-allow "$MCP_ALLOW_ARG")
   # One delivery contract applies to every pair in a batch, exactly like the shared
   # harness. Each pair still re-validates it against its own brief, so a batch
   # spanning several modes is two invocations rather than a silent mixed dispatch.
@@ -980,6 +1008,7 @@ FIRSTMATE_HOME=
 # validation teardown uses, so a malformed, ambiguous, or foreign record
 # refuses here exactly as it refuses there.
 RELAUNCH_PRIOR_HARNESS=
+RELAUNCH_PRIOR_MCP_ALLOW=
 if [ "$RELAUNCH" -eq 1 ]; then
   [ "${#POS[@]}" -eq 1 ] || {
     echo "error: --relaunch takes the task id only; its project or home comes from the task's own record" >&2
@@ -1008,6 +1037,11 @@ if [ "$RELAUNCH" -eq 1 ]; then
     exit 1
   }
   RELAUNCH_PRIOR_HARNESS=$(fm_meta_get "$RELAUNCH_META" harness)
+  # The worker MCP allowlist is part of this task's recorded capability grant, so
+  # a replacement worker reuses it rather than silently widening to the current
+  # config default or narrowing away a server the task needs. An explicit
+  # --mcp-allow on the relaunch is the caller's deliberate change.
+  RELAUNCH_PRIOR_MCP_ALLOW=$(fm_meta_get "$RELAUNCH_META" mcp_allow)
   KIND=$(fm_meta_get "$RELAUNCH_META" kind)
   [ -n "$KIND" ] || KIND=ship
   MODE=$(fm_meta_get "$RELAUNCH_META" mode)
@@ -1111,7 +1145,15 @@ launch_template() {
     # does NOT suppress the interactive ghost text (verified empirically), so the env
     # var is the correct control. The dim-aware composer reader in fm-tmux-lib.sh is
     # the defense-in-depth backstop for any pane this flag cannot reach.
-    claude) printf '%s' 'CLAUDE_CODE_ENABLE_PROMPT_SUGGESTION=false claude --dangerously-skip-permissions __MODELFLAG____EFFORTFLAG__"$(__OPINPUT__ encode launch-brief < __BRIEF__)"' ;;
+    # --strict-mcp-config --mcp-config is the worker capability boundary, not an
+    # optional extra: a worker runs with --dangerously-skip-permissions over
+    # untrusted repository content, so every MCP server it can reach is reachable
+    # by an indirect prompt injection with no human in the path. Strict mode
+    # restricts the session to the generated file, so the captain's user-scope
+    # servers in ~/.claude.json and any project-scope .mcp.json in the worktree
+    # are both out of reach. bin/fm-mcp-allowlist-lib.sh owns that file's content
+    # (default {"mcpServers":{}}); dropping these flags re-opens the whole surface.
+    claude) printf '%s' 'CLAUDE_CODE_ENABLE_PROMPT_SUGGESTION=false claude --dangerously-skip-permissions --strict-mcp-config --mcp-config __MCPCONFIG__ __MODELFLAG____EFFORTFLAG__"$(__OPINPUT__ encode launch-brief < __BRIEF__)"' ;;
     codex)
       if [ "$kind" = secondmate ]; then
         printf '%s' 'codex __MODELFLAG____EFFORTFLAG__--dangerously-bypass-approvals-and-sandbox "$(__OPINPUT__ encode launch-brief < __BRIEF__)"'
@@ -1225,6 +1267,45 @@ esac
 if [ "$KIND" = secondmate ] && [ "$HARNESS" = muse ]; then
   echo "error: muse is a verified crewmate/scout adapter only and cannot run a secondmate; it has no primary supervision protocol. Select a harness verified for secondmates." >&2
   exit 1
+fi
+
+# Worker MCP capability grant. Resolved here, before any endpoint or worktree
+# exists, so an invalid allowlist or an unsupported harness refuses without
+# leaving a half-created task behind. bin/fm-mcp-allowlist-lib.sh owns the
+# definitions schema, name resolution, and generated file content;
+# docs/configuration.md "Worker MCP allowlist" is the operator-facing owner.
+MCP_ISOLATION=$(fm_mcp_isolation_mode "$HARNESS")
+# Whether firstmate can deliver a grant at all is decided by the composed launch,
+# not by the harness name: the raw-launch escape hatch can name a strict-capable
+# harness while omitting the flags, or supply its own --mcp-config that firstmate
+# does not own. Either way the placeholder is the one thing firstmate can fill, so
+# its absence means no grant was delivered and the record must say so. A
+# silently-false strict claim is worse than an honest gap.
+MCP_DELIVERABLE=0
+case "$LAUNCH" in
+  *__MCPCONFIG__*) [ "$MCP_ISOLATION" = strict ] && MCP_DELIVERABLE=1 ;;
+esac
+[ "$MCP_DELIVERABLE" -eq 1 ] || MCP_ISOLATION=unverified
+if [ "$MCP_ALLOW_SET" -eq 1 ] && [ "$MCP_DELIVERABLE" -eq 0 ]; then
+  echo "error: --mcp-allow cannot be honored for this launch (harness '$HARNESS'); firstmate has no verified mechanism to replace that harness's own MCP configuration, or this launch command supplies its own, so a scoped allowlist here would be a claim rather than a boundary (docs/configuration.md \"Worker MCP allowlist\" owns the per-harness coverage). Select a harness with verified isolation or drop the flag." >&2
+  exit 1
+fi
+MCP_ALLOW_NAMES=
+MCP_ALLOW_RECORD=
+if [ "$MCP_DELIVERABLE" -eq 1 ]; then
+  MCP_ALLOW_REQUESTED=$MCP_ALLOW_ARG
+  if [ "$MCP_ALLOW_SET" -eq 0 ] && [ "$RELAUNCH" -eq 1 ]; then
+    # The recorded grant is this task's answer, so a replacement worker reuses it
+    # rather than re-reading a config default that may have changed since.
+    MCP_ALLOW_REQUESTED=${RELAUNCH_PRIOR_MCP_ALLOW:-none}
+  fi
+  MCP_ALLOW_NAMES=$(fm_mcp_allowlist_resolve "$CONFIG" "$MCP_ALLOW_REQUESTED") || exit 1
+  MCP_ALLOW_RECORD=$(printf '%s' "$MCP_ALLOW_NAMES" | tr '\n' ',' | sed 's/,$//')
+else
+  # Disclose rather than claim. A worker launched this way still reads its
+  # harness's own MCP configuration, including the machine user's servers, and
+  # mcp_allow= stays empty because firstmate delivered no allowlist.
+  echo "notice: worker MCP isolation is NOT enforced for harness '$HARNESS' - this worker can reach that harness's own configured MCP servers, including user-scope ones. docs/configuration.md \"Worker MCP allowlist\" owns the per-harness coverage and the open gaps." >&2
 fi
 
 case "$HARNESS" in
@@ -2632,7 +2713,7 @@ fi
 preserve_relaunch_meta() {
   awk -F= '
     BEGIN {
-      split("window endpoint_task_id worktree project harness kind mode yolo tasktmp model effort busy_gen spawn_gen traceparent backend herdr_session herdr_workspace_id herdr_tab_id herdr_pane_id zellij_session zellij_tab_id zellij_pane_id orca_worktree_id terminal cmux_workspace_id cmux_surface_id home projects control_relaunch_tx", keys, " ")
+      split("window endpoint_task_id worktree project harness kind mode yolo tasktmp model effort mcp_allow mcp_isolation busy_gen spawn_gen traceparent backend herdr_session herdr_workspace_id herdr_tab_id herdr_pane_id zellij_session zellij_tab_id zellij_pane_id orca_worktree_id terminal cmux_workspace_id cmux_surface_id home projects control_relaunch_tx", keys, " ")
       for (i in keys) owned[keys[i]] = 1
     }
     !($1 in owned)
@@ -2650,6 +2731,11 @@ preserve_relaunch_meta() {
   echo "tasktmp=$TASK_TMP"
   echo "model=${MODEL:-default}"
   echo "effort=${EFFORT:-default}"
+  # This task's worker MCP capability grant. mcp_allow= is the resolved comma
+  # list (empty means no server at all) and mcp_isolation= records whether
+  # firstmate enforced that grant or is disclosing an unenforced harness.
+  echo "mcp_allow=$MCP_ALLOW_RECORD"
+  echo "mcp_isolation=$MCP_ISOLATION"
   [ -z "${BUSY_GEN:-}" ] || echo "busy_gen=$BUSY_GEN"
   echo "spawn_gen=$SPAWN_GEN"
   # Default-off writes no traceparent= line.
@@ -2722,6 +2808,20 @@ LAUNCH=${LAUNCH//__PIEXT__/$sq_piext}
 LAUNCH=${LAUNCH//__PITURNEND__/$sq_piturnend}
 LAUNCH=${LAUNCH//__PIWATCH__/$sq_piwatch}
 LAUNCH=${LAUNCH//__OPINPUT__/$sq_opinput}
+# Generate this task's MCP config before the launch is typed, and refuse rather
+# than launch without it: a claude worker started without a readable
+# --mcp-config file would fall back to the whole user-scope surface, which is
+# exactly the capability grant this file exists to remove.
+case "$LAUNCH" in
+  *__MCPCONFIG__*)
+    MCP_CONFIG_FILE=$(fm_mcp_config_path "$STATE" "$ID")
+    fm_mcp_config_write "$MCP_CONFIG_FILE" "$CONFIG" "$MCP_ALLOW_NAMES" || {
+      echo "error: could not write the worker MCP allowlist '$MCP_CONFIG_FILE'; refusing to launch a worker that would otherwise inherit every configured MCP server" >&2
+      exit 1
+    }
+    LAUNCH=${LAUNCH//__MCPCONFIG__/"$(shell_quote "$MCP_CONFIG_FILE")"}
+    ;;
+esac
 case "$HARNESS" in
   pi|pi-signed) LAUNCH=${LAUNCH//__PIBIN__/"$(shell_quote "$PI_BIN")"} ;;
   cursor) LAUNCH=${LAUNCH//__CURSORBIN__/"$(shell_quote "$CURSOR_BIN")"} ;;
