@@ -914,3 +914,32 @@ Refresh this harness-dependent proof before accepting a cursor upgrade:
 ```sh
 FM_HARNESS_LIVENESS_DRIFT=1 bin/fm-test-run.sh tests/fm-harness-liveness-drift-live-e2e.test.sh
 ```
+
+## Worker MCP isolation
+
+Verified on 2026-09-24 against Claude Code 2.1.282 and codex-cli 0.156.1 on macOS, via `FM_MCP_ISOLATION_GUARD=1 bin/fm-test-run.sh tests/fm-mcp-isolation-live-e2e.test.sh`.
+The guard consumes no model tokens and needs no credentials: Claude Code resolves MCP configuration during startup, before it checks login, and the guard sends no prompt in its observation runs.
+
+The oracle is the session's own startup debug log, read out of a throwaway `CLAUDE_CONFIG_DIR` planted with one sentinel server per configuration scope.
+`claude mcp list` is not usable as an oracle: it ignores the root-level `--mcp-config` and `--strict-mcp-config` flags entirely on 2.1.282, so it reports the machine's own servers no matter what the session would resolve.
+
+Observed (sanitized):
+
+```text
+# claude 2.1.282 (Claude Code): bin/fm-spawn.sh's own composed default launch is accepted (no MCP configuration refusal)
+# claude 2.1.282 (Claude Code): resolved exactly the allowlisted server under the flags, and nothing under the empty default (signal: session debug log)
+# claude 2.1.282 (Claude Code): control run without the flags resolved [fm-mcp-guard-local-sentinel fm-mcp-guard-project-sentinel fm-mcp-guard-user-sentinel], so the oracle can see user, local, and project scope
+ok - worker MCP isolation: claude 2.1.282 (Claude Code) honors the firstmate-owned allowlist
+# codex codex-cli 0.156.1: no strict-config switch advertised; recorded gap is still accurate
+```
+
+The control line is what makes the restricted result meaningful: with the boundary flags off the same oracle sees all three planted scopes, so the single-server restricted result is a real restriction rather than an oracle that cannot see anything.
+
+Two adjacent facts from the same run:
+
+- `--mcp-config` is variadic on 2.1.282, so `--mcp-config <file>` placed last swallows the launch's positional brief and the session dies with `Invalid MCP configuration: MCP config file not found: <the brief>`.
+  The launch template therefore terminates it with `--strict-mcp-config`, and the guard fills `bin/fm-spawn.sh`'s own template with empty model and effort flags so a future reordering is caught by the binary.
+- The user and local MCP scopes are selected by `CLAUDE_CONFIG_DIR`, not by `HOME`.
+  A lab that only redirects `HOME` reads, and can write to, the real developer store.
+
+codex remains an open gap on evidence: codex-cli 0.153.4 and 0.156.1 advertise no strict-config switch, and `-c mcp_servers=` merges into that harness's own configuration rather than replacing it.

@@ -323,12 +323,17 @@ Per-harness coverage:
 
 | Harness | Worker MCP isolation | Mechanism or gap |
 |---|---|---|
-| claude | Enforced | `--strict-mcp-config --mcp-config <generated file>` restricts the session to that file, so user scope (`~/.claude.json`), project scope (`.mcp.json` in the task worktree), and local scope are all out of reach. |
+| claude | Enforced | `--mcp-config <generated file> --strict-mcp-config` restricts the session to that file, so user scope (`~/.claude.json`), project scope (`.mcp.json` in the task worktree), and local scope are all out of reach. |
 | codex, opencode, pi, pi-signed, grok, kimi, cursor, muse | **Not enforced - open gap** | Firstmate has no verified mechanism yet to replace these harnesses' own MCP configuration, so a worker on one of them can reach that harness's configured servers, including the machine user's. Each spawn prints a one-line stderr notice and records `mcp_isolation=unverified` rather than claiming a boundary it does not have. |
+
+That claude flag order is required, not cosmetic.
+`--mcp-config` is variadic, so an option has to follow the generated path; with the path last, the launch's own prompt argument is read as a second config file and the worker refuses to start with `MCP config file not found`.
+`codex` stays in the second row on evidence rather than assumption: codex-cli 0.153.4 and 0.156.1 (both checked 2026-09-24) advertise no strict-config switch at all, and `-c mcp_servers=` merges into that harness's own configuration instead of replacing it, so it cannot express "this file and nothing else".
 
 `--mcp-allow` is refused on a harness in the second row: a scoped allowlist there would be a claim rather than a boundary.
 Closing a gap means proving the harness's own strict-config switch against the installed binary, adding it to `fm_mcp_isolation_mode`, and moving that row up.
-The claude row rests on the documented behavior of those two flags rather than on a recorded fleet run; `tests/fm-mcp-isolation-live-e2e.test.sh` is the opt-in guard that proves flag acceptance and surface restriction per installed harness.
+`tests/fm-mcp-isolation-live-e2e.test.sh` is the opt-in guard behind the claude row: it launches the composed command against the installed binary in a throwaway config store planted with user-, local-, and project-scope sentinel servers, then reads the session's own debug log to confirm the resolved MCP set is exactly the allowlisted server.
+It consumes no model tokens and needs no credentials, because Claude Code resolves MCP configuration before it checks login.
 Run it with `FM_MCP_ISOLATION_GUARD=1` on a machine that has the binaries, after any harness upgrade, and record the dated result in [runtime-backend verification](verification/runtime-backends.md).
 The same guard fails when a harness in the second row has quietly gained a strict-config switch, so a stale gap row is caught rather than assumed.
 Until a gap closes, treat a credential-bearing or account-session MCP entry in the machine user's harness config as reachable by any worker dispatched on that harness.
